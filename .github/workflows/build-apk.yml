@@ -26,12 +26,13 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Check source for unresolved merge conflicts
+      - name: Verify Glance widget source
         run: |
-          if grep -RInE '^(<<<<<<<|=======|>>>>>>>)' app/src app/build.gradle.kts; then
-            echo "Merge conflict markers found in source."
+          if grep -RInE 'TextUnit\.Sp|androidx\.glance\.unit\.Sp' app/src/main/java; then
+            echo "Invalid legacy Glance TextUnit.Sp usage found."
             exit 1
           fi
+          grep -n "import androidx.glance.unit.sp" app/src/main/java/com/arz/rates/widget/RatesWidget.kt
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace

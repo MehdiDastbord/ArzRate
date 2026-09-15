@@ -1,0 +1,7 @@
+ArzRate build fix
+
+The widget uses the supported Glance unit extensions:
+  import androidx.glance.unit.dp
+  import androidx.glance.unit.sp
+
+Use values such as 8.dp and 12.sp. Do NOT use TextUnit.Sp(...) or import androidx.glance.unit.Sp.
