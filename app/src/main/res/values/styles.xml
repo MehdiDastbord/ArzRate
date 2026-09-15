@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.ArzRates" parent="android:style/Theme.Material.Light.NoActionBar" />
+</resources>
