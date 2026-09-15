@@ -358,7 +358,7 @@ private fun WidgetContent(
 }
 
 @androidx.compose.runtime.Composable
-private fun WidgetRateCell(
+private fun androidx.glance.layout.RowScope.WidgetRateCell(
     item: RateItem,
     language: Language,
     columns: Int
