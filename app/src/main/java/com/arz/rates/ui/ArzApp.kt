@@ -79,7 +79,7 @@ private fun strings(language: Language) = if (language == Language.PERSIAN) {
         persian = "فارسی", noRates = "هنوز نرخی دریافت نشده است.", appearance = "ظاهر برنامه",
         system = "سیستم", light = "روشن", dark = "تیره", holdToReorder = "برای جابه‌جایی، روی ارز نگه دار و بکش.",
         calculatorTitle = "تبدیل سریع ارز", amount = "مقدار", from = "از", to = "به", result = "نتیجه",
-        swap = "جابه‌جایی", chooseCurrency = "انتخاب ارز", about = "درباره برنامه", developer = "سازنده: Mehdi Dastbord",
+        swap = "جابه‌جایی", chooseCurrency = "انتخاب ارز", about = "درباره برنامه", developer = "مهدی دست برد",
         widgetHint = "ویجت با اندازه صفحه سازگار می‌شود و با حالت روشن/تیره گوشی هماهنگ است."
     )
 } else {
@@ -96,7 +96,7 @@ private fun strings(language: Language) = if (language == Language.PERSIAN) {
         persian = "فارسی", noRates = "No rates have been received yet.", appearance = "Appearance",
         system = "System", light = "Light", dark = "Dark", holdToReorder = "Hold a currency and drag it to reorder.",
         calculatorTitle = "Currency converter", amount = "Amount", from = "From", to = "To", result = "Result",
-        swap = "Swap", chooseCurrency = "Choose currency", about = "About", developer = "Developer: Mehdi Dastbord",
+        swap = "Swap", chooseCurrency = "Choose currency", about = "About", developer = "Mehdi Dastbord",
         widgetHint = "The widget adapts to its size and follows the phone's light/dark mode."
     )
 }
