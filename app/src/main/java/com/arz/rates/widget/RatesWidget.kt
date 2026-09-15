@@ -1,7 +1,6 @@
 package com.arz.rates.widget
 
 import android.content.Context
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -28,8 +27,9 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.TextUnit
+import androidx.glance.unit.DpSize
 import androidx.glance.unit.dp
+import androidx.glance.unit.sp
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -49,48 +49,19 @@ import java.text.NumberFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-/*
- * ------------------------------------------------------------
- * ARZRATES WIDGET
- * ------------------------------------------------------------
- *
- * Responsive currency widget:
- *
- * 1 currency  -> large single row
- * 2 currencies -> large rows
- * 3 currencies -> large rows
- * 4+ currencies -> compact grid
- *
- * Automatically follows Android light/dark mode.
- *
- * Light:
- *   soft white background
- *   black text
- *
- * Dark:
- *   soft near-black background
- *   white text
- *
- * Data comes from the same selected currencies used by the app.
- */
-
-// ------------------------------------------------------------
-// COLORS
-// ------------------------------------------------------------
-
-private val DayBackground = Color(0xFFF7F8FA)
+private val DayBackground = Color(0xFFF8F9FA)
 private val NightBackground = Color(0xFF202124)
 
 private val DayText = Color(0xFF17181A)
 private val NightText = Color(0xFFF7F7F7)
 
-private val DayMuted = Color(0xFF69717A)
-private val NightMuted = Color(0xFFB8BEC6)
+private val DayMuted = Color(0xFF687078)
+private val NightMuted = Color(0xFFB9BEC5)
 
-private val DayUp = Color(0xFF16845B)
+private val DayUp = Color(0xFF137A55)
 private val NightUp = Color(0xFF63D19A)
 
-private val DayDown = Color(0xFFC33E43)
+private val DayDown = Color(0xFFC0393B)
 private val NightDown = Color(0xFFFF8585)
 
 private val BackgroundProvider = ColorProvider(
@@ -118,15 +89,12 @@ private val DownProvider = ColorProvider(
     night = NightDown
 )
 
-// ------------------------------------------------------------
-// WIDGET
-// ------------------------------------------------------------
-
 class RatesWidget : GlanceAppWidget() {
 
     /*
-     * Exact mode lets the widget react to the actual size chosen
-     * by the launcher.
+     * Exact lets the widget receive the actual size supplied by
+     * the launcher. This allows the layout to adapt when the
+     * user resizes the widget.
      */
     override val sizeMode = SizeMode.Exact
 
@@ -134,25 +102,18 @@ class RatesWidget : GlanceAppWidget() {
         context: Context,
         id: GlanceId
     ) {
-
-        /*
-         * Load everything away from the UI thread.
-         */
         val data = withContext(Dispatchers.IO) {
 
-            val preferences = PreferencesRepository(context)
+            val prefs = PreferencesRepository(context)
 
-            val selectedKeys = preferences.selected.first()
+            val selected = prefs.selected.first()
 
-            val language = preferences.language.first()
+            val language = prefs.language.first()
 
-            /*
-             * First try cached data.
-             */
             var rates = WidgetCache.readRates(context)
 
             /*
-             * If cache is empty, fetch fresh rates.
+             * If there is no cached data yet, fetch it immediately.
              */
             if (rates.isEmpty()) {
                 rates = runCatching {
@@ -160,28 +121,20 @@ class RatesWidget : GlanceAppWidget() {
                 }.getOrDefault(emptyList())
 
                 if (rates.isNotEmpty()) {
-                    WidgetCache.saveRates(
-                        context,
-                        rates
-                    )
-                }
-            }
-
-            /*
-             * Preserve exactly the user's selected order.
-             */
-            val selectedRates = selectedKeys.mapNotNull { key ->
-                rates.firstOrNull {
-                    it.key.equals(
-                        key,
-                        ignoreCase = true
-                    )
+                    WidgetCache.saveRates(context, rates)
                 }
             }
 
             WidgetData(
                 language = language,
-                selected = selectedRates
+                selected = selected.mapNotNull { key ->
+                    rates.find {
+                        it.key.equals(
+                            key,
+                            ignoreCase = true
+                        )
+                    }
+                }
             )
         }
 
@@ -191,74 +144,46 @@ class RatesWidget : GlanceAppWidget() {
     }
 }
 
-// ------------------------------------------------------------
-// DATA
-// ------------------------------------------------------------
-
 private data class WidgetData(
     val language: Language,
     val selected: List<RateItem>
 )
 
-// ------------------------------------------------------------
-// MAIN WIDGET CONTENT
-// ------------------------------------------------------------
-
-@Composable
+@androidx.compose.runtime.Composable
 private fun WidgetContent(
     data: WidgetData
 ) {
-
     val size = LocalSize.current
 
     /*
-     * Determine layout from actual widget width.
+     * Responsive layout:
      *
-     * Small:
-     *   1 column
-     *
-     * Medium:
-     *   2 columns when many currencies
-     *
-     * Large:
-     *   3 columns when many currencies
+     * Large widget  -> 3 columns
+     * Medium widget -> 2 columns
+     * Small widget  -> 1 column
      */
-    val columns = when {
+    val count = when {
+        data.selected.isEmpty() -> 0
 
-        size.width < 220.dp -> 1
+        size.width >= 320.dp -> 3
 
-        size.width < 320.dp -> {
-            if (data.selected.size <= 3) {
-                1
-            } else {
-                2
-            }
-        }
+        size.width >= 220.dp &&
+                data.selected.size > 3 -> 2
 
-        else -> {
-            if (data.selected.size <= 3) {
-                1
-            } else {
-                3
-            }
-        }
+        else -> 1
     }
 
-    /*
-     * More space = more currencies.
-     */
-    val visibleLimit = when (columns) {
+    val visibleLimit = when (count) {
         1 -> 5
         2 -> 8
-        else -> 12
+        else -> 9
     }
 
-    val visibleCurrencies =
-        data.selected.take(visibleLimit)
+    val visible = data.selected.take(visibleLimit)
 
-    val remaining =
-        (data.selected.size - visibleCurrencies.size)
-            .coerceAtLeast(0)
+    val remaining = (
+        data.selected.size - visible.size
+    ).coerceAtLeast(0)
 
     Column(
         modifier = GlanceModifier
@@ -266,8 +191,8 @@ private fun WidgetContent(
             .background(BackgroundProvider)
             .cornerRadius(24.dp)
             .padding(
-                horizontal = 15.dp,
-                vertical = 13.dp
+                horizontal = 16.dp,
+                vertical = 14.dp
             )
             .clickable(
                 actionStartActivity<MainActivity>()
@@ -278,124 +203,106 @@ private fun WidgetContent(
         horizontalAlignment = Alignment.Start
     ) {
 
-        // ----------------------------------------------------
-        // HEADER
-        // ----------------------------------------------------
-
+        /*
+         * Header
+         */
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
 
-            verticalAlignment =
-                Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
             Column(
-                modifier =
-                    GlanceModifier.defaultWeight()
+                modifier = GlanceModifier.defaultWeight()
             ) {
 
                 Text(
-                    text =
-                        if (
-                            data.language ==
-                            Language.PERSIAN
-                        ) {
-                            "نرخ ارز"
-                        } else {
-                            "LIVE RATES"
-                        },
+                    text = if (
+                        data.language == Language.PERSIAN
+                    ) {
+                        "نرخ ارز"
+                    } else {
+                        "LIVE RATES"
+                    },
 
                     style = TextStyle(
                         color = TextProvider,
-                        fontSize = widgetSp(14),
-                        fontWeight =
-                            FontWeight.Bold
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 )
 
                 Text(
-                    text =
-                        if (
-                            data.language ==
-                            Language.PERSIAN
-                        ) {
-                            "نرخ‌های انتخاب‌شده"
-                        } else {
-                            "Your selected currencies"
-                        },
+                    text = if (
+                        data.language == Language.PERSIAN
+                    ) {
+                        "بروزرسانی لحظه‌ای"
+                    } else {
+                        "Your selected currencies"
+                    },
 
                     style = TextStyle(
                         color = MutedProvider,
-                        fontSize = widgetSp(9)
+                        fontSize = 9.sp
                     )
                 )
             }
 
-            /*
-             * Live indicator.
-             */
             Text(
                 text = "●",
 
                 style = TextStyle(
                     color = UpProvider,
-                    fontSize = widgetSp(12),
-                    fontWeight =
-                        FontWeight.Bold
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
                 )
             )
         }
 
         Spacer(
-            modifier =
-                GlanceModifier.height(5.dp)
+            modifier = GlanceModifier.height(5.dp)
         )
 
-        // ----------------------------------------------------
-        // EMPTY STATE
-        // ----------------------------------------------------
-
-        if (visibleCurrencies.isEmpty()) {
+        /*
+         * No currencies selected
+         */
+        if (visible.isEmpty()) {
 
             Text(
-                text =
-                    if (
-                        data.language ==
-                        Language.PERSIAN
-                    ) {
-                        "ارزها را در برنامه انتخاب کنید"
-                    } else {
-                        "Choose currencies in the app"
-                    },
+                text = if (
+                    data.language == Language.PERSIAN
+                ) {
+                    "ارزها را در برنامه انتخاب کنید"
+                } else {
+                    "Choose currencies in the app"
+                },
 
                 style = TextStyle(
                     color = MutedProvider,
-                    fontSize = widgetSp(11)
+                    fontSize = 11.sp
                 )
             )
 
         } else {
 
-            // ------------------------------------------------
-            // CURRENCY GRID
-            // ------------------------------------------------
-
-            visibleCurrencies
-                .chunked(columns)
+            /*
+             * Currency rows
+             */
+            visible
+                .chunked(count)
                 .forEach { rowItems ->
 
                     Row(
-                        modifier =
-                            GlanceModifier
-                                .fillMaxWidth()
-                                .padding(
-                                    vertical =
-                                        if (columns == 1) {
-                                            4.dp
-                                        } else {
-                                            3.dp
-                                        }
-                                ),
+                        modifier = GlanceModifier
+                            .fillMaxWidth()
+                            .padding(
+                                vertical =
+                                    if (count == 1) {
+                                        4.dp
+                                    } else {
+                                        3.dp
+                                    }
+                            ),
 
                         verticalAlignment =
                             Alignment.CenterVertically
@@ -406,124 +313,95 @@ private fun WidgetContent(
                             WidgetRateCell(
                                 item = item,
                                 language = data.language,
-                                columns = columns
+                                columns = count
                             )
                         }
 
-                        /*
-                         * Fill empty cells so the final row
-                         * keeps the same alignment.
-                         */
                         repeat(
-                            columns - rowItems.size
+                            count - rowItems.size
                         ) {
-
                             Spacer(
                                 modifier =
-                                    GlanceModifier
-                                        .defaultWeight()
+                                    GlanceModifier.defaultWeight()
                             )
                         }
                     }
                 }
 
-            // ------------------------------------------------
-            // REMAINING COUNT
-            // ------------------------------------------------
-
+            /*
+             * More currencies indicator
+             */
             if (remaining > 0) {
 
                 Text(
-                    text =
-                        if (
-                            data.language ==
-                            Language.PERSIAN
-                        ) {
-                            "+$remaining ارز دیگر"
-                        } else {
-                            "+$remaining more"
-                        },
+                    text = if (
+                        data.language == Language.PERSIAN
+                    ) {
+                        "+$remaining ارز دیگر"
+                    } else {
+                        "+$remaining more"
+                    },
 
                     style = TextStyle(
                         color = MutedProvider,
-                        fontSize = widgetSp(9),
-                        fontWeight =
-                            FontWeight.Bold
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
                     ),
 
-                    modifier =
-                        GlanceModifier.padding(
-                            top = 2.dp
-                        )
+                    modifier = GlanceModifier.padding(
+                        top = 2.dp
+                    )
                 )
             }
         }
     }
 }
 
-// ------------------------------------------------------------
-// CURRENCY CELL
-// ------------------------------------------------------------
-
-@Composable
+@androidx.compose.runtime.Composable
 private fun WidgetRateCell(
     item: RateItem,
     language: Language,
     columns: Int
 ) {
+    val value = formatWidgetNumber(
+        raw = item.rate.value ?: "—",
+        language = language
+    )
 
-    val value =
-        formatWidgetNumber(
-            raw = item.rate.value ?: "—",
-            language = language
-        )
+    val change = item.rate.change ?: 0.0
 
-    val change =
-        item.rate.change ?: 0.0
+    val positive = change >= 0
 
-    val positive =
-        change >= 0
-
-    val flag =
-        currencyFlag(item.key)
+    val flag = currencyFlag(item.key)
 
     Row(
-        modifier =
-            GlanceModifier.defaultWeight(),
+        modifier = GlanceModifier.defaultWeight(),
 
-        verticalAlignment =
-            Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically
     ) {
 
-        // ----------------------------------------------------
-        // FLAG / ICON
-        // ----------------------------------------------------
-
+        /*
+         * Currency flag / symbol
+         */
         Text(
             text = flag,
 
             style = TextStyle(
                 fontSize =
                     if (columns == 1) {
-                        widgetSp(16)
+                        16.sp
                     } else {
-                        widgetSp(13)
+                        13.sp
                     }
             )
         )
 
         Spacer(
-            modifier =
-                GlanceModifier.width(5.dp)
+            modifier = GlanceModifier.width(5.dp)
         )
 
-        // ----------------------------------------------------
-        // CODE + NAME
-        // ----------------------------------------------------
-
         Column(
-            modifier =
-                GlanceModifier.defaultWeight()
+            modifier = GlanceModifier.defaultWeight()
         ) {
 
             Row(
@@ -531,30 +409,33 @@ private fun WidgetRateCell(
                     Alignment.CenterVertically
             ) {
 
+                /*
+                 * Currency code
+                 */
                 Text(
-                    text =
-                        item.key.uppercase(),
+                    text = item.key.uppercase(),
 
                     style = TextStyle(
                         color = TextProvider,
 
                         fontSize =
                             if (columns == 1) {
-                                widgetSp(12)
+                                12.sp
                             } else {
-                                widgetSp(10)
+                                10.sp
                             },
 
-                        fontWeight =
-                            FontWeight.Bold
+                        fontWeight = FontWeight.Bold
                     )
                 )
 
                 Spacer(
-                    modifier =
-                        GlanceModifier.width(3.dp)
+                    modifier = GlanceModifier.width(3.dp)
                 )
 
+                /*
+                 * Up / down indicator
+                 */
                 Text(
                     text =
                         if (positive) {
@@ -571,37 +452,36 @@ private fun WidgetRateCell(
                                 DownProvider
                             },
 
-                        fontSize =
-                            widgetSp(8)
+                        fontSize = 8.sp
                     )
                 )
             }
 
             /*
-             * Full currency name is shown only in
-             * the large one-column layout.
+             * Persian/English currency name.
+             *
+             * Only show the name in the single-column layout
+             * so larger lists don't become overcrowded.
              */
             if (columns == 1) {
 
                 Text(
-                    text =
-                        CurrencyNames.nameFor(
-                            item.key,
-                            language
-                        ),
+                    text = CurrencyNames.nameFor(
+                        item.key,
+                        language
+                    ),
 
                     style = TextStyle(
                         color = MutedProvider,
-                        fontSize = widgetSp(8)
+                        fontSize = 8.sp
                     )
                 )
             }
         }
 
-        // ----------------------------------------------------
-        // VALUE
-        // ----------------------------------------------------
-
+        /*
+         * Currency value
+         */
         Text(
             text = value,
 
@@ -610,58 +490,29 @@ private fun WidgetRateCell(
 
                 fontSize =
                     if (columns == 1) {
-                        widgetSp(12)
+                        12.sp
                     } else {
-                        widgetSp(10)
+                        10.sp
                     },
 
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
         )
     }
 }
-
-// ------------------------------------------------------------
-// GLANCE SP HELPER
-// ------------------------------------------------------------
-
-/*
- * IMPORTANT:
- *
- * Do NOT use:
- *
- *     12.Sp
- *
- * and do not rely on an unresolved `sp` extension.
- *
- * This helper creates the Glance TextUnit explicitly.
- */
-private fun widgetSp(
-    value: Int
-): TextUnit {
-    return TextUnit.Sp(value)
-}
-
-// ------------------------------------------------------------
-// NUMBER FORMAT
-// ------------------------------------------------------------
 
 private fun formatWidgetNumber(
     raw: String,
     language: Language
 ): String {
 
-    val number =
-        raw
-            .replace(",", "")
-            .toDoubleOrNull()
-            ?: return raw
+    val n = raw
+        .replace(",", "")
+        .toDoubleOrNull()
+        ?: return raw
 
     val locale =
-        if (
-            language == Language.PERSIAN
-        ) {
+        if (language == Language.PERSIAN) {
             Locale.forLanguageTag("fa-IR")
         } else {
             Locale.US
@@ -669,212 +520,211 @@ private fun formatWidgetNumber(
 
     return NumberFormat
         .getNumberInstance(locale)
-        .format(number)
+        .format(n)
 }
-
-// ------------------------------------------------------------
-// CURRENCY FLAGS
-// ------------------------------------------------------------
 
 private fun currencyFlag(
     key: String
 ): String {
 
-    val code =
-        key
-            .lowercase()
-            .substringBefore('_')
+    val code = key
+        .lowercase()
+        .substringBefore('_')
 
-    val country =
-        mapOf(
+    val country = mapOf(
 
-            "afn" to "AF",
-            "all" to "AL",
-            "amd" to "AM",
-            "ang" to "CW",
-            "aoa" to "AO",
-            "ars" to "AR",
-            "awg" to "AW",
-            "azn" to "AZ",
+        "afn" to "AF",
+        "all" to "AL",
+        "amd" to "AM",
+        "ang" to "CW",
+        "aoa" to "AO",
+        "ars" to "AR",
+        "awg" to "AW",
+        "azn" to "AZ",
 
-            "bam" to "BA",
-            "bbd" to "BB",
-            "bdt" to "BD",
-            "bgn" to "BG",
-            "bhd" to "BH",
-            "bif" to "BI",
-            "bmd" to "BM",
-            "bnd" to "BN",
-            "bob" to "BO",
-            "brl" to "BR",
-            "bsd" to "BS",
-            "btn" to "BT",
-            "bwp" to "BW",
-            "byn" to "BY",
-            "bzd" to "BZ",
+        "bam" to "BA",
+        "bbd" to "BB",
+        "bdt" to "BD",
+        "bgn" to "BG",
+        "bhd" to "BH",
+        "bif" to "BI",
+        "bmd" to "BM",
+        "bnd" to "BN",
 
-            "cad" to "CA",
-            "cdf" to "CD",
-            "chf" to "CH",
-            "clp" to "CL",
-            "cny" to "CN",
-            "cop" to "CO",
-            "crc" to "CR",
-            "cuc" to "CU",
-            "cup" to "CU",
-            "cve" to "CV",
-            "czk" to "CZ",
+        "bob" to "BO",
+        "brl" to "BR",
+        "bsd" to "BS",
+        "btn" to "BT",
+        "bwp" to "BW",
+        "byn" to "BY",
+        "bzd" to "BZ",
 
-            "djf" to "DJ",
-            "dkk" to "DK",
-            "dop" to "DO",
-            "dzd" to "DZ",
+        "cad" to "CA",
+        "cdf" to "CD",
+        "chf" to "CH",
+        "clp" to "CL",
+        "cny" to "CN",
+        "cop" to "CO",
+        "crc" to "CR",
+        "cuc" to "CU",
+        "cup" to "CU",
+        "cve" to "CV",
+        "czk" to "CZ",
 
-            "egp" to "EG",
-            "ern" to "ER",
-            "etb" to "ET",
-            "eur" to "EU",
+        "djf" to "DJ",
+        "dkk" to "DK",
+        "dop" to "DO",
+        "dzd" to "DZ",
 
-            "fjd" to "FJ",
-            "fkp" to "FK",
+        "egp" to "EG",
+        "ern" to "ER",
+        "etb" to "ET",
+        "eur" to "EU",
 
-            "gbp" to "GB",
-            "gel" to "GE",
-            "ghs" to "GH",
-            "gmd" to "GM",
-            "gnf" to "GN",
-            "gtq" to "GT",
-            "gyd" to "GY",
+        "fjd" to "FJ",
+        "fkp" to "FK",
 
-            "hkd" to "HK",
-            "hnl" to "HN",
-            "hrk" to "HR",
-            "htg" to "HT",
-            "huf" to "HU",
+        "gbp" to "GB",
+        "gel" to "GE",
+        "ghs" to "GH",
+        "gmd" to "GM",
+        "gnf" to "GN",
+        "gtq" to "GT",
+        "gyd" to "GY",
 
-            "idr" to "ID",
-            "ils" to "IL",
-            "imp" to "IM",
-            "inr" to "IN",
-            "iqd" to "IQ",
-            "isk" to "IS",
+        "hkd" to "HK",
+        "hnl" to "HN",
+        "hrk" to "HR",
+        "htg" to "HT",
+        "huf" to "HU",
 
-            "jmd" to "JM",
-            "jod" to "JO",
-            "jpy" to "JP",
+        "idr" to "ID",
+        "ils" to "IL",
+        "imp" to "IM",
+        "inr" to "IN",
+        "iqd" to "IQ",
+        "isk" to "IS",
 
-            "kes" to "KE",
-            "kgs" to "KG",
-            "khr" to "KH",
-            "kmf" to "KM",
-            "kpw" to "KP",
-            "krw" to "KR",
-            "kzt" to "KZ",
+        "jmd" to "JM",
+        "jod" to "JO",
+        "jpy" to "JP",
 
-            "lak" to "LA",
-            "lbp" to "LB",
-            "lkr" to "LK",
-            "lrd" to "LR",
-            "lsl" to "LS",
-            "lyd" to "LY",
+        "kes" to "KE",
+        "kgs" to "KG",
+        "khr" to "KH",
+        "kmf" to "KM",
+        "kpw" to "KP",
+        "krw" to "KR",
+        "kzt" to "KZ",
 
-            "mad" to "MA",
-            "mdl" to "MD",
-            "mga" to "MG",
-            "mkd" to "MK",
-            "mmk" to "MM",
-            "mnt" to "MN",
-            "mop" to "MO",
-            "mru" to "MR",
-            "mur" to "MU",
-            "mvr" to "MV",
-            "mwk" to "MW",
-            "mxn" to "MX",
-            "myr" to "MY",
-            "mzn" to "MZ",
+        "lak" to "LA",
+        "lbp" to "LB",
+        "lkr" to "LK",
+        "lrd" to "LR",
+        "lsl" to "LS",
+        "lyd" to "LY",
 
-            "nad" to "NA",
-            "ngn" to "NG",
-            "nio" to "NI",
-            "nok" to "NO",
-            "npr" to "NP",
-            "nzd" to "NZ",
+        "mad" to "MA",
+        "mdl" to "MD",
+        "mga" to "MG",
+        "mkd" to "MK",
+        "mmk" to "MM",
+        "mnt" to "MN",
+        "mop" to "MO",
+        "mru" to "MR",
+        "mur" to "MU",
+        "mvr" to "MV",
+        "mwk" to "MW",
+        "mxn" to "MX",
+        "myr" to "MY",
+        "mzn" to "MZ",
 
-            "omr" to "OM",
+        "nad" to "NA",
+        "ngn" to "NG",
+        "nio" to "NI",
+        "nok" to "NO",
+        "npr" to "NP",
+        "nzd" to "NZ",
 
-            "pab" to "PA",
-            "pen" to "PE",
-            "pgk" to "PG",
-            "php" to "PH",
-            "pkr" to "PK",
-            "pln" to "PL",
-            "pyg" to "PY",
+        "omr" to "OM",
 
-            "qar" to "QA",
+        "pab" to "PA",
+        "pen" to "PE",
+        "pgk" to "PG",
+        "php" to "PH",
+        "pkr" to "PK",
+        "pln" to "PL",
+        "pyg" to "PY",
 
-            "ron" to "RO",
-            "rsd" to "RS",
-            "rub" to "RU",
-            "rwf" to "RW",
+        "qar" to "QA",
 
-            "sar" to "SA",
-            "sbd" to "SB",
-            "scr" to "SC",
-            "sdg" to "SD",
-            "sek" to "SE",
-            "sgd" to "SG",
-            "shp" to "SH",
-            "sle" to "SL",
-            "sll" to "SL",
-            "sos" to "SO",
-            "srd" to "SR",
-            "ssp" to "SS",
-            "stn" to "ST",
-            "svc" to "SV",
-            "syp" to "SY",
-            "szl" to "SZ",
+        "ron" to "RO",
+        "rsd" to "RS",
+        "rub" to "RU",
+        "rwf" to "RW",
 
-            "thb" to "TH",
-            "tjs" to "TJ",
-            "tmt" to "TM",
-            "tnd" to "TN",
-            "top" to "TO",
-            "try" to "TR",
-            "ttd" to "TT",
-            "twd" to "TW",
-            "tzs" to "TZ",
+        "sar" to "SA",
+        "sbd" to "SB",
+        "scr" to "SC",
+        "sdg" to "SD",
+        "sek" to "SE",
+        "sgd" to "SG",
+        "shp" to "SH",
+        "sle" to "SL",
+        "sll" to "SL",
+        "sos" to "SO",
+        "srd" to "SR",
+        "ssp" to "SS",
+        "stn" to "ST",
+        "svc" to "SV",
+        "syp" to "SY",
+        "szl" to "SZ",
 
-            "uah" to "UA",
-            "ugx" to "UG",
-            "usd" to "US",
-            "uyu" to "UY",
-            "uzs" to "UZ",
+        "thb" to "TH",
+        "tjs" to "TJ",
+        "tmt" to "TM",
+        "tnd" to "TN",
+        "top" to "TO",
+        "try" to "TR",
+        "ttd" to "TT",
+        "twd" to "TW",
+        "tzs" to "TZ",
 
-            "ves" to "VE",
-            "vnd" to "VN",
-            "vuv" to "VU",
+        "uah" to "UA",
+        "ugx" to "UG",
+        "usd" to "US",
+        "uyu" to "UY",
+        "uzs" to "UZ",
 
-            "wst" to "WS",
+        "ves" to "VE",
+        "vnd" to "VN",
+        "vuv" to "VU",
 
-            "xaf" to "CM",
-            "xcd" to "AG",
-            "xof" to "SN",
-            "xpf" to "PF",
+        "wst" to "WS",
 
-            "yer" to "YE",
-            "zar" to "ZA",
-            "zmw" to "ZM",
-            "zwl" to "ZW",
+        "xaf" to "CM",
+        "xcd" to "AG",
+        "xof" to "SN",
+        "xpf" to "PF",
 
-            "aed" to "AE",
-            "aud" to "AU",
+        "yer" to "YE",
+        "zar" to "ZA",
+        "zmw" to "ZM",
+        "zwl" to "ZW",
 
-            // Crypto / commodities
-            "btc" to "",
-            "eth" to "",
-            "xau" to "",
-            "xag" to ""
-        )
+        "aed" to "AE",
+        "aud" to "AU",
+
+        /*
+         * Crypto / precious metals don't have country flags.
+         */
+        "btc" to "",
+        "eth" to "",
+        "xau" to "",
+        "xag" to ""
+    )
+
+    val code2 = country[code]
 
     if (code == "btc") {
         return "₿"
@@ -892,43 +742,33 @@ private fun currencyFlag(
         return "🥈"
     }
 
-    val countryCode =
-        country[code]
-
-    if (countryCode == null) {
+    if (code2 == null) {
         return "💱"
     }
 
-    return countryCode
-        .map { character ->
-
+    return code2
+        .map {
             Character.codePointAt(
-                character.toString(),
+                it.toString(),
                 0
             ) + 127397
         }
-        .joinToString("") { codePoint ->
-
+        .joinToString("") {
             String(
-                Character.toChars(codePoint)
+                Character.toChars(it)
             )
         }
 }
 
-// ------------------------------------------------------------
-// WIDGET RECEIVER
-// ------------------------------------------------------------
-
 class RatesWidgetReceiver :
     GlanceAppWidgetReceiver() {
 
-    override val glanceAppWidget:
-        GlanceAppWidget = RatesWidget()
+    override val glanceAppWidget: GlanceAppWidget =
+        RatesWidget()
 
     override fun onEnabled(
         context: Context
     ) {
-
         super.onEnabled(context)
 
         requestImmediateUpdate(context)
@@ -968,9 +808,7 @@ class RatesWidgetReceiver :
         ) {
 
             val request =
-                OneTimeWorkRequestBuilder<
-                    RatesWidgetUpdateWorker
-                    >()
+                OneTimeWorkRequestBuilder<RatesWidgetUpdateWorker>()
                     .build()
 
             WorkManager
@@ -987,9 +825,7 @@ class RatesWidgetReceiver :
         ) {
 
             val request =
-                PeriodicWorkRequestBuilder<
-                    RatesWidgetUpdateWorker
-                    >(
+                PeriodicWorkRequestBuilder<RatesWidgetUpdateWorker>(
                     15,
                     TimeUnit.MINUTES
                 ).build()
