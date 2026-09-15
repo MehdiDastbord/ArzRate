@@ -4,21 +4,16 @@ import android.content.Context
 import androidx.compose.ui.graphics.Color
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.LocalSize
-import androidx.glance.action.actionStartActivity
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.clickable
 import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
-import androidx.glance.layout.defaultWeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -27,7 +22,6 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.DpSize
 import androidx.glance.unit.dp
 import androidx.glance.unit.sp
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -35,7 +29,6 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.arz.rates.MainActivity
 import com.arz.rates.data.CurrencyNames
 import com.arz.rates.data.Language
 import com.arz.rates.data.PreferencesRepository
@@ -90,13 +83,6 @@ private val DownProvider = ColorProvider(
 )
 
 class RatesWidget : GlanceAppWidget() {
-
-    /*
-     * Exact lets the widget receive the actual size supplied by
-     * the launcher. This allows the layout to adapt when the
-     * user resizes the widget.
-     */
-    override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(
         context: Context,
@@ -153,37 +139,11 @@ private data class WidgetData(
 private fun WidgetContent(
     data: WidgetData
 ) {
-    val size = LocalSize.current
-
-    /*
-     * Responsive layout:
-     *
-     * Large widget  -> 3 columns
-     * Medium widget -> 2 columns
-     * Small widget  -> 1 column
-     */
-    val count = when {
-        data.selected.isEmpty() -> 0
-
-        size.width >= 320.dp -> 3
-
-        size.width >= 220.dp &&
-                data.selected.size > 3 -> 2
-
-        else -> 1
-    }
-
-    val visibleLimit = when (count) {
-        1 -> 5
-        2 -> 8
-        else -> 9
-    }
-
-    val visible = data.selected.take(visibleLimit)
-
-    val remaining = (
-        data.selected.size - visible.size
-    ).coerceAtLeast(0)
+    // Keep the widget deliberately simple and stable. Android launchers can
+    // resize widgets in many ways, so the layout uses one vertical list and
+    // avoids Glance's weight/sizing APIs that caused build and layout issues.
+    val visible = data.selected.take(8)
+    val remaining = (data.selected.size - visible.size).coerceAtLeast(0)
 
     Column(
         modifier = GlanceModifier
@@ -193,163 +153,69 @@ private fun WidgetContent(
             .padding(
                 horizontal = 16.dp,
                 vertical = 14.dp
-            )
-            .clickable(
-                actionStartActivity<MainActivity>()
             ),
-
         verticalAlignment = Alignment.Top,
-
         horizontalAlignment = Alignment.Start
     ) {
-
-        /*
-         * Header
-         */
-        Row(
-            modifier = GlanceModifier.fillMaxWidth(),
-
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            Column(
-                modifier = GlanceModifier.defaultWeight()
-            ) {
-
-                Text(
-                    text = if (
-                        data.language == Language.PERSIAN
-                    ) {
-                        "نرخ ارز"
-                    } else {
-                        "LIVE RATES"
-                    },
-
-                    style = TextStyle(
-                        color = TextProvider,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-
-                Text(
-                    text = if (
-                        data.language == Language.PERSIAN
-                    ) {
-                        "بروزرسانی لحظه‌ای"
-                    } else {
-                        "Your selected currencies"
-                    },
-
-                    style = TextStyle(
-                        color = MutedProvider,
-                        fontSize = 9.sp
-                    )
-                )
-            }
-
-            Text(
-                text = "●",
-
-                style = TextStyle(
-                    color = UpProvider,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
+        Text(
+            text = if (data.language == Language.PERSIAN) {
+                "نرخ ارز"
+            } else {
+                "LIVE RATES"
+            },
+            style = TextStyle(
+                color = TextProvider,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
             )
-        }
-
-        Spacer(
-            modifier = GlanceModifier.height(5.dp)
         )
 
-        /*
-         * No currencies selected
-         */
-        if (visible.isEmpty()) {
+        Text(
+            text = if (data.language == Language.PERSIAN) {
+                "نرخ‌های انتخاب‌شده"
+            } else {
+                "Selected currencies"
+            },
+            style = TextStyle(
+                color = MutedProvider,
+                fontSize = 9.sp
+            )
+        )
 
+        Spacer(modifier = GlanceModifier.height(8.dp))
+
+        if (visible.isEmpty()) {
             Text(
-                text = if (
-                    data.language == Language.PERSIAN
-                ) {
+                text = if (data.language == Language.PERSIAN) {
                     "ارزها را در برنامه انتخاب کنید"
                 } else {
                     "Choose currencies in the app"
                 },
-
                 style = TextStyle(
                     color = MutedProvider,
                     fontSize = 11.sp
                 )
             )
-
         } else {
+            visible.forEach { item ->
+                WidgetRateCell(
+                    item = item,
+                    language = data.language
+                )
+            }
 
-            /*
-             * Currency rows
-             */
-            visible
-                .chunked(count)
-                .forEach { rowItems ->
-
-                    Row(
-                        modifier = GlanceModifier
-                            .fillMaxWidth()
-                            .padding(
-                                vertical =
-                                    if (count == 1) {
-                                        4.dp
-                                    } else {
-                                        3.dp
-                                    }
-                            ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
-                    ) {
-
-                        rowItems.forEach { item ->
-
-                            WidgetRateCell(
-                                item = item,
-                                language = data.language,
-                                columns = count
-                            )
-                        }
-
-                        repeat(
-                            count - rowItems.size
-                        ) {
-                            Spacer(
-                                modifier =
-                                    GlanceModifier.defaultWeight()
-                            )
-                        }
-                    }
-                }
-
-            /*
-             * More currencies indicator
-             */
             if (remaining > 0) {
-
+                Spacer(modifier = GlanceModifier.height(2.dp))
                 Text(
-                    text = if (
-                        data.language == Language.PERSIAN
-                    ) {
+                    text = if (data.language == Language.PERSIAN) {
                         "+$remaining ارز دیگر"
                     } else {
                         "+$remaining more"
                     },
-
                     style = TextStyle(
                         color = MutedProvider,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold
-                    ),
-
-                    modifier = GlanceModifier.padding(
-                        top = 2.dp
                     )
                 )
             }
@@ -358,145 +224,74 @@ private fun WidgetContent(
 }
 
 @androidx.compose.runtime.Composable
-private fun androidx.glance.layout.RowScope.WidgetRateCell(
+private fun WidgetRateCell(
     item: RateItem,
-    language: Language,
-    columns: Int
+    language: Language
 ) {
     val value = formatWidgetNumber(
         raw = item.rate.value ?: "—",
         language = language
     )
-
     val change = item.rate.change ?: 0.0
-
     val positive = change >= 0
-
     val flag = currencyFlag(item.key)
 
-    Row(
-        modifier = GlanceModifier.defaultWeight(),
-
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
     ) {
-
-        /*
-         * Currency flag / symbol
-         */
-        Text(
-            text = flag,
-
-            style = TextStyle(
-                fontSize =
-                    if (columns == 1) {
-                        16.sp
-                    } else {
-                        13.sp
-                    }
-            )
-        )
-
-        Spacer(
-            modifier = GlanceModifier.width(5.dp)
-        )
-
-        Column(
-            modifier = GlanceModifier.defaultWeight()
+        Row(
+            modifier = GlanceModifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-
-            Row(
-                verticalAlignment =
-                    Alignment.CenterVertically
-            ) {
-
-                /*
-                 * Currency code
-                 */
-                Text(
-                    text = item.key.uppercase(),
-
-                    style = TextStyle(
-                        color = TextProvider,
-
-                        fontSize =
-                            if (columns == 1) {
-                                12.sp
-                            } else {
-                                10.sp
-                            },
-
-                        fontWeight = FontWeight.Bold
-                    )
+            Text(
+                text = flag,
+                style = TextStyle(
+                    fontSize = 16.sp
                 )
+            )
 
-                Spacer(
-                    modifier = GlanceModifier.width(3.dp)
+            Spacer(modifier = GlanceModifier.width(6.dp))
+
+            Text(
+                text = item.key.uppercase(),
+                style = TextStyle(
+                    color = TextProvider,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
                 )
+            )
 
-                /*
-                 * Up / down indicator
-                 */
-                Text(
-                    text =
-                        if (positive) {
-                            "▲"
-                        } else {
-                            "▼"
-                        },
+            Spacer(modifier = GlanceModifier.width(6.dp))
 
-                    style = TextStyle(
-                        color =
-                            if (positive) {
-                                UpProvider
-                            } else {
-                                DownProvider
-                            },
-
-                        fontSize = 8.sp
-                    )
+            Text(
+                text = if (positive) "▲" else "▼",
+                style = TextStyle(
+                    color = if (positive) UpProvider else DownProvider,
+                    fontSize = 8.sp
                 )
-            }
+            )
 
-            /*
-             * Persian/English currency name.
-             *
-             * Only show the name in the single-column layout
-             * so larger lists don't become overcrowded.
-             */
-            if (columns == 1) {
+            Spacer(modifier = GlanceModifier.width(6.dp))
 
-                Text(
-                    text = CurrencyNames.nameFor(
-                        item.key,
-                        language
-                    ),
-
-                    style = TextStyle(
-                        color = MutedProvider,
-                        fontSize = 8.sp
-                    )
+            Text(
+                text = value,
+                style = TextStyle(
+                    color = TextProvider,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
                 )
-            }
+            )
         }
 
-        /*
-         * Currency value
-         */
         Text(
-            text = value,
-
+            text = CurrencyNames.nameFor(item.key, language),
             style = TextStyle(
-                color = TextProvider,
-
-                fontSize =
-                    if (columns == 1) {
-                        12.sp
-                    } else {
-                        10.sp
-                    },
-
-                fontWeight = FontWeight.Bold
-            )
+                color = MutedProvider,
+                fontSize = 8.sp
+            ),
+            modifier = GlanceModifier.padding(start = 22.dp)
         )
     }
 }

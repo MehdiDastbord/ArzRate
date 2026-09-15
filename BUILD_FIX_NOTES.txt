@@ -1,7 +1,15 @@
-ArzRate build fix
+ArzRate widget simplification
 
-The widget uses the supported Glance unit extensions:
-  import androidx.glance.unit.dp
-  import androidx.glance.unit.sp
+The home-screen widget was simplified to prioritize build stability:
+- Removed SizeMode/LocalSize responsive sizing logic.
+- Removed defaultWeight() usage.
+- Removed widget clickable/action dependency.
+- Removed TextUnit/legacy Sp handling.
+- Uses only Glance dp/sp extensions for dimensions and text sizes.
+- Keeps selected currencies, localized currency names, values, change indicators,
+  and currency flag/symbol display.
+- Widget automatically follows Android light/dark mode through ColorProvider.
 
-Use values such as 8.dp and 12.sp. Do NOT use TextUnit.Sp(...) or import androidx.glance.unit.Sp.
+The container used for this edit does not include the Android/Gradle toolchain,
+so the APK could not be compiled locally here. GitHub Actions remains configured
+for the debug build.
