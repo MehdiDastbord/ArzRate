@@ -32,7 +32,6 @@ jobs:
             echo "Invalid legacy Glance TextUnit.Sp usage found."
             exit 1
           fi
-          grep -n "import androidx.glance.unit.sp" app/src/main/java/com/arz/rates/widget/RatesWidget.kt
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace

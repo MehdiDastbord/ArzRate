@@ -1,29 +1,23 @@
 package com.arz.rates.widget
 
 import android.content.Context
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.height
-import androidx.glance.layout.padding
-import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.dp
-import androidx.glance.unit.sp
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -44,89 +38,40 @@ import java.util.concurrent.TimeUnit
 
 private val DayBackground = Color(0xFFF8F9FA)
 private val NightBackground = Color(0xFF202124)
-
 private val DayText = Color(0xFF17181A)
 private val NightText = Color(0xFFF7F7F7)
-
 private val DayMuted = Color(0xFF687078)
 private val NightMuted = Color(0xFFB9BEC5)
-
 private val DayUp = Color(0xFF137A55)
 private val NightUp = Color(0xFF63D19A)
-
 private val DayDown = Color(0xFFC0393B)
 private val NightDown = Color(0xFFFF8585)
 
-private val BackgroundProvider = ColorProvider(
-    day = DayBackground,
-    night = NightBackground
-)
-
-private val TextProvider = ColorProvider(
-    day = DayText,
-    night = NightText
-)
-
-private val MutedProvider = ColorProvider(
-    day = DayMuted,
-    night = NightMuted
-)
-
-private val UpProvider = ColorProvider(
-    day = DayUp,
-    night = NightUp
-)
-
-private val DownProvider = ColorProvider(
-    day = DayDown,
-    night = NightDown
-)
+private val BackgroundProvider = ColorProvider(day = DayBackground, night = NightBackground)
+private val TextProvider = ColorProvider(day = DayText, night = NightText)
+private val MutedProvider = ColorProvider(day = DayMuted, night = NightMuted)
+private val UpProvider = ColorProvider(day = DayUp, night = NightUp)
+private val DownProvider = ColorProvider(day = DayDown, night = NightDown)
 
 class RatesWidget : GlanceAppWidget() {
-
-    override suspend fun provideGlance(
-        context: Context,
-        id: GlanceId
-    ) {
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
         val data = withContext(Dispatchers.IO) {
-
             val prefs = PreferencesRepository(context)
-
             val selected = prefs.selected.first()
-
             val language = prefs.language.first()
-
             var rates = WidgetCache.readRates(context)
-
-            /*
-             * If there is no cached data yet, fetch it immediately.
-             */
             if (rates.isEmpty()) {
-                rates = runCatching {
-                    RatesRepository().fetch()
-                }.getOrDefault(emptyList())
-
-                if (rates.isNotEmpty()) {
-                    WidgetCache.saveRates(context, rates)
-                }
+                rates = runCatching { RatesRepository().fetch() }.getOrDefault(emptyList())
+                if (rates.isNotEmpty()) WidgetCache.saveRates(context, rates)
             }
-
             WidgetData(
                 language = language,
                 selected = selected.mapNotNull { key ->
-                    rates.find {
-                        it.key.equals(
-                            key,
-                            ignoreCase = true
-                        )
-                    }
+                    rates.find { it.key.equals(key, ignoreCase = true) }
                 }
             )
         }
-
-        provideContent {
-            WidgetContent(data)
-        }
+        provideContent { WidgetContent(data) }
     }
 }
 
@@ -135,163 +80,73 @@ private data class WidgetData(
     val selected: List<RateItem>
 )
 
-@androidx.compose.runtime.Composable
-private fun WidgetContent(
-    data: WidgetData
-) {
-    // Keep the widget deliberately simple and stable. Android launchers can
-    // resize widgets in many ways, so the layout uses one vertical list and
-    // avoids Glance's weight/sizing APIs that caused build and layout issues.
+@Composable
+private fun WidgetContent(data: WidgetData) {
     val visible = data.selected.take(8)
     val remaining = (data.selected.size - visible.size).coerceAtLeast(0)
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(BackgroundProvider)
-            .cornerRadius(24.dp)
-            .padding(
-                horizontal = 16.dp,
-                vertical = 14.dp
-            ),
+            .background(BackgroundProvider),
         verticalAlignment = Alignment.Top,
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text = if (data.language == Language.PERSIAN) {
-                "نرخ ارز"
-            } else {
-                "LIVE RATES"
-            },
-            style = TextStyle(
-                color = TextProvider,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            text = if (data.language == Language.PERSIAN) "نرخ ارز" else "LIVE RATES",
+            style = TextStyle(color = TextProvider, fontWeight = FontWeight.Bold)
         )
-
         Text(
-            text = if (data.language == Language.PERSIAN) {
-                "نرخ‌های انتخاب‌شده"
-            } else {
-                "Selected currencies"
-            },
-            style = TextStyle(
-                color = MutedProvider,
-                fontSize = 9.sp
-            )
+            text = if (data.language == Language.PERSIAN) "نرخ‌های انتخاب‌شده" else "Selected currencies",
+            style = TextStyle(color = MutedProvider)
         )
-
-        Spacer(modifier = GlanceModifier.height(8.dp))
 
         if (visible.isEmpty()) {
             Text(
-                text = if (data.language == Language.PERSIAN) {
-                    "ارزها را در برنامه انتخاب کنید"
-                } else {
-                    "Choose currencies in the app"
-                },
-                style = TextStyle(
-                    color = MutedProvider,
-                    fontSize = 11.sp
-                )
+                text = if (data.language == Language.PERSIAN) "ارزها را در برنامه انتخاب کنید" else "Choose currencies in the app",
+                style = TextStyle(color = MutedProvider)
             )
         } else {
-            visible.forEach { item ->
-                WidgetRateCell(
-                    item = item,
-                    language = data.language
-                )
-            }
-
+            visible.forEach { item -> WidgetRateCell(item, data.language) }
             if (remaining > 0) {
-                Spacer(modifier = GlanceModifier.height(2.dp))
                 Text(
-                    text = if (data.language == Language.PERSIAN) {
-                        "+$remaining ارز دیگر"
-                    } else {
-                        "+$remaining more"
-                    },
-                    style = TextStyle(
-                        color = MutedProvider,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    text = if (data.language == Language.PERSIAN) "+$remaining ارز دیگر" else "+$remaining more",
+                    style = TextStyle(color = MutedProvider, fontWeight = FontWeight.Bold)
                 )
             }
         }
     }
 }
 
-@androidx.compose.runtime.Composable
-private fun WidgetRateCell(
-    item: RateItem,
-    language: Language
-) {
-    val value = formatWidgetNumber(
-        raw = item.rate.value ?: "—",
-        language = language
-    )
+@Composable
+private fun WidgetRateCell(item: RateItem, language: Language) {
+    val value = formatWidgetNumber(item.rate.value ?: "—", language)
     val change = item.rate.change ?: 0.0
-    val positive = change >= 0
+    val positive = change >= 0.0
     val flag = currencyFlag(item.key)
 
-    Column(
-        modifier = GlanceModifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-    ) {
+    Column(modifier = GlanceModifier.fillMaxWidth()) {
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(text = flag)
             Text(
-                text = flag,
-                style = TextStyle(
-                    fontSize = 16.sp
-                )
+                text = " ${item.key.uppercase()} ",
+                style = TextStyle(color = TextProvider, fontWeight = FontWeight.Bold)
             )
-
-            Spacer(modifier = GlanceModifier.width(6.dp))
-
-            Text(
-                text = item.key.uppercase(),
-                style = TextStyle(
-                    color = TextProvider,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            )
-
-            Spacer(modifier = GlanceModifier.width(6.dp))
-
             Text(
                 text = if (positive) "▲" else "▼",
-                style = TextStyle(
-                    color = if (positive) UpProvider else DownProvider,
-                    fontSize = 8.sp
-                )
+                style = TextStyle(color = if (positive) UpProvider else DownProvider)
             )
-
-            Spacer(modifier = GlanceModifier.width(6.dp))
-
             Text(
-                text = value,
-                style = TextStyle(
-                    color = TextProvider,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                text = " $value",
+                style = TextStyle(color = TextProvider, fontWeight = FontWeight.Bold)
             )
         }
-
         Text(
             text = CurrencyNames.nameFor(item.key, language),
-            style = TextStyle(
-                color = MutedProvider,
-                fontSize = 8.sp
-            ),
-            modifier = GlanceModifier.padding(start = 22.dp)
+            style = TextStyle(color = MutedProvider)
         )
     }
 }
