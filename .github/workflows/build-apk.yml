@@ -26,6 +26,13 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Check source for unresolved merge conflicts
+        run: |
+          if grep -RInE '^(<<<<<<<|=======|>>>>>>>)' app/src app/build.gradle.kts; then
+            echo "Merge conflict markers found in source."
+            exit 1
+          fi
+
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 

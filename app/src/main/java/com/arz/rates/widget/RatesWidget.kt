@@ -27,9 +27,8 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.DpSize
 import androidx.glance.unit.dp
-import androidx.glance.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -227,7 +226,7 @@ private fun WidgetContent(
 
                     style = TextStyle(
                         color = TextProvider,
-                        fontSize = 14.sp,
+                        fontSize = TextUnit.Sp(14f),
                         fontWeight = FontWeight.Bold
                     )
                 )
@@ -243,7 +242,7 @@ private fun WidgetContent(
 
                     style = TextStyle(
                         color = MutedProvider,
-                        fontSize = 9.sp
+                        fontSize = TextUnit.Sp(9f)
                     )
                 )
             }
@@ -253,7 +252,7 @@ private fun WidgetContent(
 
                 style = TextStyle(
                     color = UpProvider,
-                    fontSize = 12.sp,
+                    fontSize = TextUnit.Sp(12f),
                     fontWeight = FontWeight.Bold
                 )
             )
@@ -279,7 +278,7 @@ private fun WidgetContent(
 
                 style = TextStyle(
                     color = MutedProvider,
-                    fontSize = 11.sp
+                    fontSize = TextUnit.Sp(11f)
                 )
             )
 
@@ -344,7 +343,7 @@ private fun WidgetContent(
 
                     style = TextStyle(
                         color = MutedProvider,
-                        fontSize = 9.sp,
+                        fontSize = TextUnit.Sp(9f),
                         fontWeight = FontWeight.Bold
                     ),
 
@@ -389,9 +388,9 @@ private fun WidgetRateCell(
             style = TextStyle(
                 fontSize =
                     if (columns == 1) {
-                        16.sp
+                        TextUnit.Sp(16f)
                     } else {
-                        13.sp
+                        TextUnit.Sp(13f)
                     }
             )
         )
@@ -420,9 +419,9 @@ private fun WidgetRateCell(
 
                         fontSize =
                             if (columns == 1) {
-                                12.sp
+                                TextUnit.Sp(12f)
                             } else {
-                                10.sp
+                                TextUnit.Sp(10f)
                             },
 
                         fontWeight = FontWeight.Bold
@@ -452,7 +451,7 @@ private fun WidgetRateCell(
                                 DownProvider
                             },
 
-                        fontSize = 8.sp
+                        fontSize = TextUnit.Sp(8f)
                     )
                 )
             }
@@ -473,7 +472,7 @@ private fun WidgetRateCell(
 
                     style = TextStyle(
                         color = MutedProvider,
-                        fontSize = 8.sp
+                        fontSize = TextUnit.Sp(8f)
                     )
                 )
             }
@@ -490,9 +489,9 @@ private fun WidgetRateCell(
 
                 fontSize =
                     if (columns == 1) {
-                        12.sp
+                        TextUnit.Sp(12f)
                     } else {
-                        10.sp
+                        TextUnit.Sp(10f)
                     },
 
                 fontWeight = FontWeight.Bold

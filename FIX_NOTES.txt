@@ -1,0 +1,16 @@
+ArzRate fixed project
+======================
+Base: current ArzRate-main.zip supplied by the user.
+
+Key build fix:
+- RatesWidget.kt no longer relies on androidx.glance.unit.sp for font sizing.
+- Glance TextStyle's fontSize is a Compose TextUnit, so the widget now uses androidx.compose.ui.unit.TextUnit and TextUnit.Sp(...).
+- Glance dp remains androidx.glance.unit.dp.
+- Removed unused DpSize import.
+- Added a GitHub Actions pre-build check for merge-conflict markers in app source.
+
+The project retains the existing Persian/English app, selected-currency dashboard,
+calculator, reorder support, app logo, responsive widget, and background widget worker.
+
+Build in GitHub Actions:
+  gradle :app:assembleDebug --no-daemon --stacktrace
