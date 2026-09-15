@@ -25,9 +25,8 @@ import androidx.glance.background
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.DpSize
-import androidx.glance.unit.dp
-import androidx.glance.unit.sp
+import androidx.glance.unit.Dp
+import androidx.glance.unit.Sp
 import androidx.glance.LocalSize
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -100,8 +99,8 @@ private fun WidgetContent(data: WidgetData) {
     val size = LocalSize.current
     val count = when {
         data.selected.isEmpty() -> 0
-        size.width >= 320.dp -> 3
-        size.width >= 220.dp && data.selected.size > 3 -> 2
+        size.width >= Dp(320f) -> 3
+        size.width >= Dp(220f) && data.selected.size > 3 -> 2
         else -> 1
     }
     val visibleLimit = when (count) {
@@ -116,8 +115,8 @@ private fun WidgetContent(data: WidgetData) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(BackgroundProvider)
-            .cornerRadius(24.dp)
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .cornerRadius(Dp(24f))
+            .padding(horizontal = Dp(16f), vertical = Dp(14f))
             .clickable(actionStartActivity<MainActivity>()),
         verticalAlignment = Alignment.Top,
         horizontalAlignment = Alignment.Start
@@ -126,26 +125,26 @@ private fun WidgetContent(data: WidgetData) {
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(
                     if (data.language == Language.PERSIAN) "نرخ ارز" else "LIVE RATES",
-                    style = TextStyle(color = TextProvider, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = TextProvider, fontSize = Sp(14f), fontWeight = FontWeight.Bold)
                 )
                 Text(
                     if (data.language == Language.PERSIAN) "بروزرسانی لحظه‌ای" else "Your selected currencies",
-                    style = TextStyle(color = MutedProvider, fontSize = 9.sp)
+                    style = TextStyle(color = MutedProvider, fontSize = Sp(9f))
                 )
             }
-            Text("●", style = TextStyle(color = UpProvider, fontSize = 12.sp, fontWeight = FontWeight.Bold))
+            Text("●", style = TextStyle(color = UpProvider, fontSize = Sp(12f), fontWeight = FontWeight.Bold))
         }
-        Spacer(GlanceModifier.height(5.dp))
+        Spacer(GlanceModifier.height(Dp(5f)))
 
         if (visible.isEmpty()) {
             Text(
                 if (data.language == Language.PERSIAN) "ارزها را در برنامه انتخاب کنید" else "Choose currencies in the app",
-                style = TextStyle(color = MutedProvider, fontSize = 11.sp)
+                style = TextStyle(color = MutedProvider, fontSize = Sp(11f))
             )
         } else {
             visible.chunked(count).forEach { rowItems ->
                 Row(
-                    modifier = GlanceModifier.fillMaxWidth().padding(vertical = if (count == 1) 4.dp else 3.dp),
+                    modifier = GlanceModifier.fillMaxWidth().padding(vertical = if (count == 1) Dp(4f) else Dp(3f)),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     rowItems.forEach { item ->
@@ -157,8 +156,8 @@ private fun WidgetContent(data: WidgetData) {
             if (remaining > 0) {
                 Text(
                     if (data.language == Language.PERSIAN) "+$remaining ارز دیگر" else "+$remaining more",
-                    style = TextStyle(color = MutedProvider, fontSize = 9.sp, fontWeight = FontWeight.Bold),
-                    modifier = GlanceModifier.padding(top = 2.dp)
+                    style = TextStyle(color = MutedProvider, fontSize = Sp(9f), fontWeight = FontWeight.Bold),
+                    modifier = GlanceModifier.padding(top = Dp(2f))
                 )
             }
         }
@@ -173,19 +172,19 @@ private fun WidgetRateCell(item: RateItem, language: Language, columns: Int) {
     val flag = currencyFlag(item.key)
     val cellModifier = if (columns == 1) GlanceModifier.defaultWeight() else GlanceModifier.defaultWeight()
     Row(modifier = cellModifier, verticalAlignment = Alignment.CenterVertically) {
-        Text(flag, style = TextStyle(fontSize = if (columns == 1) 16.sp else 13.sp))
-        Spacer(GlanceModifier.width(5.dp))
+        Text(flag, style = TextStyle(fontSize = if (columns == 1) Sp(16f) else Sp(13f)))
+        Spacer(GlanceModifier.width(Dp(5f)))
         Column(modifier = GlanceModifier.defaultWeight()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(item.key.uppercase(), style = TextStyle(color = TextProvider, fontSize = if (columns == 1) 12.sp else 10.sp, fontWeight = FontWeight.Bold))
-                Spacer(GlanceModifier.width(3.dp))
-                Text(if (positive) "▲" else "▼", style = TextStyle(color = if (positive) UpProvider else DownProvider, fontSize = 8.sp))
+                Text(item.key.uppercase(), style = TextStyle(color = TextProvider, fontSize = if (columns == 1) Sp(12f) else Sp(10f), fontWeight = FontWeight.Bold))
+                Spacer(GlanceModifier.width(Dp(3f)))
+                Text(if (positive) "▲" else "▼", style = TextStyle(color = if (positive) UpProvider else DownProvider, fontSize = Sp(8f)))
             }
             if (columns == 1) {
-                Text(CurrencyNames.nameFor(item.key, language), style = TextStyle(color = MutedProvider, fontSize = 8.sp))
+                Text(CurrencyNames.nameFor(item.key, language), style = TextStyle(color = MutedProvider, fontSize = Sp(8f)))
             }
         }
-        Text(value, style = TextStyle(color = TextProvider, fontSize = if (columns == 1) 12.sp else 10.sp, fontWeight = FontWeight.Bold))
+        Text(value, style = TextStyle(color = TextProvider, fontSize = if (columns == 1) Sp(12f) else Sp(10f), fontWeight = FontWeight.Bold))
     }
 }
 

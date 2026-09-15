@@ -32,10 +32,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import com.arz.rates.R
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -118,7 +118,7 @@ fun ArzApp(vm: AppViewModel) {
                 }
             }
         ) { padding ->
-            AnimatedContent(
+            AnimatedContent<Int>(
                 targetState = tab,
                 modifier = Modifier.padding(padding).fillMaxSize(),
                 transitionSpec = {
@@ -191,7 +191,6 @@ private fun ReorderableRateCard(item: RateItem, state: AppState, vm: AppViewMode
                     onDragCancel = { dragging = false; dragOffset = 0f },
                     onDragEnd = { dragging = false; dragOffset = 0f },
                     onDrag = { change, amount ->
-                        change.consume()
                         dragOffset += amount.y
                         val currentIndex = state.selected.indexOf(item.key)
                         val current = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == item.key } ?: return@detectDragGesturesAfterLongPress
