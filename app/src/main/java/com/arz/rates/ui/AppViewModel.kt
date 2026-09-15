@@ -1,27 +1,28 @@
 package com.arz.rates.ui
 
-import androidx.glance.appwidget.updateAll
 import android.app.Application
+import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.arz.rates.data.Language
 import com.arz.rates.data.PreferencesRepository
 import com.arz.rates.data.RateItem
 import com.arz.rates.data.RatesRepository
+import com.arz.rates.data.ThemeMode
 import com.arz.rates.data.WidgetCache
 import com.arz.rates.widget.RatesWidget
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
- data class AppState(
+data class AppState(
     val rates: List<RateItem> = emptyList(),
     val selected: List<String> = emptyList(),
     val language: Language = Language.ENGLISH,
+    val theme: ThemeMode = ThemeMode.SYSTEM,
     val loading: Boolean = false,
     val error: String? = null,
     val lastUpdated: Long? = null
@@ -45,6 +46,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             prefs.language.collect { language ->
                 _state.value = _state.value.copy(language = language)
+                RatesWidget().updateAll(application)
+            }
+        }
+        viewModelScope.launch {
+            prefs.theme.collect { theme ->
+                _state.value = _state.value.copy(theme = theme)
                 RatesWidget().updateAll(application)
             }
         }
@@ -95,9 +102,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun reorder(from: Int, to: Int) {
         viewModelScope.launch {
             val list = _state.value.selected.toMutableList()
-            if (from !in list.indices || to !in list.indices) return@launch
+            if (from !in list.indices || to !in list.indices || from == to) return@launch
             val item = list.removeAt(from)
-            list.add(to, item)
+            list.add(to.coerceIn(0, list.size), item)
             prefs.saveSelected(list)
             RatesWidget().updateAll(application)
         }
@@ -113,6 +120,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setLanguage(language: Language) {
         viewModelScope.launch {
             prefs.saveLanguage(language)
+            RatesWidget().updateAll(application)
+        }
+    }
+
+    fun setTheme(theme: ThemeMode) {
+        viewModelScope.launch {
+            prefs.saveTheme(theme)
             RatesWidget().updateAll(application)
         }
     }

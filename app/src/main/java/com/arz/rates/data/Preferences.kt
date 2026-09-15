@@ -10,6 +10,8 @@ import org.json.JSONArray
 
 private val Context.dataStore by preferencesDataStore("arz_preferences")
 
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 class PreferencesRepository(private val context: Context) {
     private val selectedKey = stringPreferencesKey("selected_rates")
     private val themeKey = stringPreferencesKey("theme")
@@ -29,10 +31,16 @@ class PreferencesRepository(private val context: Context) {
         context.dataStore.edit { it[selectedKey] = arr.toString() }
     }
 
-    val theme: Flow<String> = context.dataStore.data.map { it[themeKey] ?: "system" }
+    val theme: Flow<ThemeMode> = context.dataStore.data.map {
+        when (it[themeKey]?.lowercase()) {
+            "light" -> ThemeMode.LIGHT
+            "dark" -> ThemeMode.DARK
+            else -> ThemeMode.SYSTEM
+        }
+    }
 
-    suspend fun saveTheme(theme: String) {
-        context.dataStore.edit { it[themeKey] = theme }
+    suspend fun saveTheme(theme: ThemeMode) {
+        context.dataStore.edit { it[themeKey] = theme.name.lowercase() }
     }
 
     val language: Flow<Language> = context.dataStore.data.map {

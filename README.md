@@ -1,41 +1,25 @@
-# Arz Rates — Cloud-Build Android App
+# ArzRates
 
-Kotlin + Jetpack Compose Android currency/rates dashboard powered by the Navasan API.
+Enhanced Android currency app with English + Persian, responsive live widget, calculator, drag-to-reorder currencies, theme selection, and branded app icon.
 
-## Build directly in GitHub (no Android Studio)
+## Main features
+- English and Persian UI with RTL support.
+- Currency names translated to Persian where supported by the API/data model.
+- Light / Dark / System appearance setting.
+- Home dashboard with long-press drag-and-drop currency reordering.
+- Currency picker with country/currency flags.
+- Calculator tab for converting between any two loaded rates.
+- Responsive home-screen widget:
+  - 1–3 currencies: large one-per-row layout.
+  - More currencies: compact multi-column layout.
+  - Adapts when the widget is resized.
+  - Light phone mode: soft white background + dark text.
+  - Dark phone mode: soft near-black background + white text.
+  - Flags/symbols for supported currencies, with a generic fallback.
+  - Opens the app when tapped.
+  - Fetches data when the widget cache is empty and refreshes in the background.
+- App logo is installed as the launcher icon and shown in Settings.
+- GitHub Actions updated to current action runtimes and Java 17.
 
-This repository includes `.github/workflows/build-apk.yml`.
-
-1. Upload the project files to a GitHub repository.
-2. Open **Actions**.
-3. Choose **Build Android APK**.
-4. Tap **Run workflow**.
-5. Wait for the green check.
-6. Open the completed workflow run.
-7. Under **Artifacts**, download `ArzRates-debug-apk`.
-8. Extract it and install `app-debug.apk` on Android.
-
-The workflow installs JDK 17 and Gradle 8.10.2 on GitHub's cloud runner, so Android Studio and Gradle do not need to be installed on the phone.
-
-## App features
-
-- First-launch currency selection
-- Home dashboard with only selected rates
-- Explore all rates returned by the API
-- Search by name or code
-- Add/remove selected rates
-- Local selection persistence
-- Manual refresh
-- Loading/error states
-- System dark/light theme
-- Android home-screen widget foundation
-
-## API
-
-`https://api.navasan.tech/latest/?api_key=YOUR_KEY`
-
-The supplied API key is currently stored in the Android build configuration for this prototype. For a public production APK, move the key behind your own backend/proxy because keys embedded in APKs can be extracted.
-
-## Refresh note
-
-The foreground app can refresh as often as required while active. Android does not guarantee an exact 60-second background execution interval for widgets; the widget uses Android's scheduled widget update mechanism.
+## Build
+GitHub Actions runs `gradle :app:assembleDebug` and uploads `app-debug.apk` as an artifact.

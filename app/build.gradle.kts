@@ -28,8 +28,8 @@ android {
         applicationId = "com.arz.rates"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     buildTypes {
@@ -120,12 +120,12 @@ dependencies {
     )
 
     // Android home-screen widget
-    implementation("androidx.glance:glance:1.1.1")
+    implementation("androidx.glance:glance:1.2.0")
     implementation(
-        "androidx.glance:glance-appwidget:1.1.1"
+        "androidx.glance:glance-appwidget:1.2.0"
     )
     implementation(
-        "androidx.glance:glance-material3:1.1.1"
+        "androidx.glance:glance-material3:1.2.0"
     )
 
     // Background widget refresh (Android enforces a minimum 15-minute periodic interval)
