@@ -9,6 +9,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,7 +36,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -191,7 +191,6 @@ private fun ReorderableRateCard(item: RateItem, state: AppState, vm: AppViewMode
                     onDragCancel = { dragging = false; dragOffset = 0f },
                     onDragEnd = { dragging = false; dragOffset = 0f },
                     onDrag = { change, amount ->
-                        change.consume()
                         dragOffset += amount.y
                         val currentIndex = state.selected.indexOf(item.key)
                         val current = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == item.key } ?: return@detectDragGesturesAfterLongPress
